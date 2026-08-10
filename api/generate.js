@@ -81,9 +81,16 @@ Narration:
       });
     }
 
-    return res.status(200).json({
-      script: data.output_text
-    });
+   const script =
+  data.output_text ||
+  data.output?.map(item =>
+    item.content?.map(content => content.text || "").join("")
+  ).join("\n") ||
+  "No script was generated.";
+
+return res.status(200).json({
+  script: script
+});
 
   } catch (error) {
     return res.status(500).json({
