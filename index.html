@@ -5,32 +5,38 @@
 
 <style>
 body {
-font-family: Arial, sans-serif;
-max-width: 700px;
-margin: 60px auto;
-padding: 20px;
-text-align: center;
+  font-family: Arial, sans-serif;
+  max-width: 700px;
+  margin: 60px auto;
+  padding: 20px;
+  text-align: center;
 }
 
 textarea {
-width: 100%;
-height: 120px;
-padding: 15px;
-font-size: 16px;
-box-sizing: border-box;
-margin: 20px 0;
+  width: 100%;
+  height: 120px;
+  padding: 15px;
+  font-size: 16px;
+  box-sizing: border-box;
+  margin: 20px 0;
+}
+
+select {
+  padding: 10px;
+  font-size: 16px;
+  margin-top: 8px;
 }
 
 button {
-padding: 14px 30px;
-font-size: 16px;
-cursor: pointer;
+  padding: 14px 30px;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 #result {
-margin-top: 30px;
-text-align: left;
-white-space: pre-wrap;
+  margin-top: 30px;
+  text-align: left;
+  white-space: pre-wrap;
 }
 </style>
 </head>
@@ -41,15 +47,40 @@ white-space: pre-wrap;
 
 <p>Turn your idea into a short-video script.</p>
 
-<textarea id="idea" placeholder="Describe your video idea..."></textarea>
+<textarea
+  id="idea"
+  placeholder="Describe your video idea..."
+></textarea>
 
 <br><br>
 
-<label for="style"><strong>Choose your video style:</strong></label>
+<label for="style">
+  <strong>Choose your video style:</strong>
+</label>
+
+<br>
 
 <select id="style">
   <option value="cartoon">🎨 Cartoon / Animated</option>
   <option value="realistic">🎬 Realistic</option>
+</select>
+
+<br><br>
+
+<label for="duration">
+  <strong>Choose video length:</strong>
+</label>
+
+<br>
+
+<select id="duration">
+  <option value="30">30 seconds</option>
+  <option value="60">1 minute</option>
+  <option value="90">1 minute 30 seconds</option>
+  <option value="120">2 minutes</option>
+  <option value="180">3 minutes</option>
+  <option value="240">4 minutes</option>
+  <option value="300">5 minutes</option>
 </select>
 
 <br><br>
@@ -62,6 +93,7 @@ white-space: pre-wrap;
 async function generateScript() {
   const idea = document.getElementById("idea").value;
   const style = document.getElementById("style").value;
+  const duration = document.getElementById("duration").value;
   const result = document.getElementById("result");
 
   if (!idea.trim()) {
@@ -69,7 +101,12 @@ async function generateScript() {
     return;
   }
 
-  result.innerText = "🎬 Creating your " + style + " video script...";
+  result.innerText =
+    "🎬 Creating your " +
+    style +
+    " " +
+    duration +
+    "-second video script...";
 
   try {
     const response = await fetch("/api/generate", {
@@ -79,7 +116,8 @@ async function generateScript() {
       },
       body: JSON.stringify({
         idea: idea,
-        style: style
+        style: style,
+        duration: duration
       })
     });
 
@@ -87,12 +125,17 @@ async function generateScript() {
 
     if (!response.ok) {
       result.innerText =
-        "❌ Error: " + (data.error || "Something went wrong.");
+        "❌ Error: " +
+        (data.error || "Something went wrong.");
       return;
     }
 
     result.innerText =
-      "🎬 Your AI-generated " + style + " script:\n\n" +
+      "🎬 Your AI-generated " +
+      style +
+      " " +
+      duration +
+      "-second script:\n\n" +
       data.script;
 
   } catch (error) {
@@ -102,5 +145,6 @@ async function generateScript() {
   }
 }
 </script>
+
 </body>
 </html>
