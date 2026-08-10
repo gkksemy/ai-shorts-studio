@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, duration } = req.body;
+    const { prompt } = req.body;
 
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({
@@ -14,13 +14,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const seconds = Math.min(
-      Math.max(Number(duration) || 5, 2),
-      10
-    );
-
     const response = await fetch(
-      "https://api.dev.runwayml.com/v1/image_to_video",
+      "https://api.dev.runwayml.com/v1/text_to_video",
       {
         method: "POST",
         headers: {
@@ -30,10 +25,9 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: "gen4_turbo",
-          promptImage: prompt,
           promptText: prompt,
           ratio: "720:1280",
-          duration: seconds
+          duration: 5
         })
       }
     );
