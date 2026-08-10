@@ -50,7 +50,6 @@ white-space: pre-wrap;
 <div id="result"></div>
 
 <script>
-<script>
 async function generateScript() {
   const idea = document.getElementById("idea").value;
   const result = document.getElementById("result");
@@ -74,7 +73,8 @@ async function generateScript() {
     const data = await response.json();
 
     if (!response.ok) {
-      result.innerText = "❌ Error: " + (data.error || "Something went wrong.");
+      result.innerText =
+        "❌ Error: " + (data.error || "Something went wrong.");
       return;
     }
 
@@ -89,7 +89,5 @@ async function generateScript() {
   }
 }
 </script>
-</script>
-
 </body>
 </html>
