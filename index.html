@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>AI Shorts Studio</title>
+
 <style>
 body {
 font-family: Arial, sans-serif;
@@ -37,10 +38,34 @@ white-space: pre-wrap;
 <body>
 
 <h1>🎬 AI Shorts Studio</h1>
+
 <p>Turn your idea into a short-video script.</p>
 
 <textarea id="idea" placeholder="Describe your video idea..."></textarea>
 
-<br>
+<br><br>
 
 <button onclick="generateScript()">Create Video</button>
+
+<div id="result"></div>
+
+<script>
+function generateScript() {
+const idea = document.getElementById("idea").value;
+const result = document.getElementById("result");
+
+if (!idea.trim()) {
+result.innerText = "Please enter a video idea first.";
+return;
+}
+
+result.innerText =
+"🎬 Creating your video idea...\n\n" +
+"Your idea: " + idea +
+"\n\n" +
+"Your AI video generator is working! 🚀";
+}
+</script>
+
+</body>
+</html>
