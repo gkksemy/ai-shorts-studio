@@ -1,115 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Shorts Studio</title>
+  <title>AI Shorts Studio</title>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  max-width: 700px;
-  margin: 60px auto;
-  padding: 20px;
-  text-align: center;
-}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 60px auto;
+      padding: 20px;
+      text-align: center;
+    }
 
-textarea {
-  width: 100%;
-  height: 120px;
-  padding: 15px;
-  font-size: 16px;
-  box-sizing: border-box;
-  margin: 20px 0;
-}
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 15px;
+      font-size: 16px;
+      box-sizing: border-box;
+      margin: 20px 0;
+    }
 
-select {
-  padding: 10px;
-  font-size: 16px;
-  margin-top: 8px;
-}
+    select {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 8px;
+    }
 
-button {
-  padding: 14px 30px;
-  font-size: 16px;
-  cursor: pointer;
-}
+    button {
+      padding: 14px 30px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
 
-#result {
-  margin-top: 30px;
-  text-align: left;
-  white-space: pre-wrap;
-}
-</style>
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    #result {
+      margin-top: 30px;
+      text-align: left;
+      white-space: pre-wrap;
+    }
+
+    #videoContainer {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 12px;
+    }
+
+    .status {
+      font-size: 18px;
+      margin: 20px 0;
+      text-align: center;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>🎬 AI Shorts Studio</h1>
+  <h1>🎬 AI Shorts Studio</h1>
 
-<p>Turn your idea into a short-video script.</p>
+  <p>Turn your idea into an AI-generated video.</p>
 
-<textarea
-  id="idea"
-  placeholder="Describe your video idea..."
-></textarea>
+  <textarea
+    id="idea"
+    placeholder="Describe your video idea..."
+  ></textarea>
 
-<br><br>
+  <br><br>
 
-<label for="style">
-  <strong>Choose your video style:</strong>
-</label>
+  <label for="style">
+    <strong>Choose your video style:</strong>
+  </label>
 
-<br>
+  <br>
 
-<select id="style">
-  <option value="cartoon">🎨 Cartoon / Animated</option>
-  <option value="realistic">🎬 Realistic</option>
-</select>
+  <select id="style">
+    <option value="cartoon">🎨 Cartoon / Animated</option>
+    <option value="realistic">🎬 Realistic</option>
+  </select>
 
-<br><br>
+  <br><br>
 
-<label for="duration">
-  <strong>Choose video length:</strong>
-</label>
+  <label for="duration">
+    <strong>Choose video length:</strong>
+  </label>
 
-<br>
+  <br>
 
-<select id="duration">
-  <option value="30">30 seconds</option>
-  <option value="60">1 minute</option>
-  <option value="90">1 minute 30 seconds</option>
-  <option value="120">2 minutes</option>
-  <option value="180">3 minutes</option>
-  <option value="240">4 minutes</option>
-  <option value="300">5 minutes</option>
-</select>
+  <select id="duration">
+    <option value="30">30 seconds</option>
+    <option value="60">1 minute</option>
+    <option value="90">1 minute 30 seconds</option>
+    <option value="120">2 minutes</option>
+    <option value="180">3 minutes</option>
+    <option value="240">4 minutes</option>
+    <option value="300">5 minutes</option>
+  </select>
 
-<br><br>
+  <br>
 
-<button onclick="generateScript()">Create Video</button>
+  <button id="createButton" onclick="createVideo()">
+    🎬 Create Video
+  </button>
 
-<div id="result"></div>
+  <div id="status" class="status"></div>
+
+  <div id="result"></div>
+
+  <div id="videoContainer"></div>
 
 <script>
-async function generateScript() {
-  const idea = document.getElementById("idea").value;
+async function createVideo() {
+
+  const idea = document.getElementById("idea").value.trim();
   const style = document.getElementById("style").value;
   const duration = document.getElementById("duration").value;
-  const result = document.getElementById("result");
 
-  if (!idea.trim()) {
-    result.innerText = "Please enter a video idea first.";
+  const button = document.getElementById("createButton");
+  const status = document.getElementById("status");
+  const result = document.getElementById("result");
+  const videoContainer = document.getElementById("videoContainer");
+
+  if (!idea) {
+    status.innerText = "⚠️ Please enter a video idea first.";
     return;
   }
 
-  result.innerText =
-    "🎬 Creating your " +
-    style +
-    " " +
-    duration +
-    "-second video script...";
+  button.disabled = true;
+
+  status.innerText = "🤖 Creating your AI script...";
+  result.innerText = "";
+  videoContainer.innerHTML = "";
 
   try {
-    const response = await fetch("/api/generate", {
+
+    /* =========================
+       STEP 1 — CREATE SCRIPT
+       ========================= */
+
+    const scriptResponse = await fetch("/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -121,27 +159,145 @@ async function generateScript() {
       })
     });
 
-    const data = await response.json();
+    const scriptData = await scriptResponse.json();
 
-    if (!response.ok) {
-      result.innerText =
-        "❌ Error: " +
-        (data.error || "Something went wrong.");
-      return;
+    if (!scriptResponse.ok) {
+      throw new Error(
+        scriptData.error || "Could not create the script."
+      );
     }
 
+    const script = scriptData.script;
+
     result.innerText =
-      "🎬 Your AI-generated " +
-      style +
-      " " +
-      duration +
-      "-second script:\n\n" +
-      data.script;
+      "🎬 AI SCRIPT:\n\n" +
+      script;
+
+    /* =========================
+       STEP 2 — CREATE VIDEO
+       ========================= */
+
+    status.innerText =
+      "🎥 Sending your idea to Runway...";
+
+    const videoPrompt =
+      style === "cartoon"
+        ? "Create a colorful cartoon animated scene based on this idea: " + idea
+        : "Create a realistic cinematic video scene based on this idea: " + idea;
+
+    const videoResponse = await fetch("/api/video", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: videoPrompt
+      })
+    });
+
+    const videoData = await videoResponse.json();
+
+    if (!videoResponse.ok) {
+      throw new Error(
+        videoData.error || "Could not start video generation."
+      );
+    }
+
+    const taskId = videoData.taskId;
+
+    /* =========================
+       STEP 3 — WAIT FOR VIDEO
+       ========================= */
+
+    status.innerText =
+      "⏳ Runway is creating your video...";
+
+    let videoUrl = null;
+
+    for (let attempt = 0; attempt < 30; attempt++) {
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 5000)
+      );
+
+      const statusResponse = await fetch(
+        "/api/video-status?taskId=" +
+        encodeURIComponent(taskId)
+      );
+
+      const statusData = await statusResponse.json();
+
+      if (!statusResponse.ok) {
+        throw new Error(
+          statusData.error ||
+          "Could not check video status."
+        );
+      }
+
+      if (statusData.status === "SUCCEEDED") {
+
+        if (
+          statusData.output &&
+          Array.isArray(statusData.output) &&
+          statusData.output.length > 0
+        ) {
+          videoUrl = statusData.output[0];
+        }
+
+        break;
+      }
+
+      if (
+        statusData.status === "FAILED" ||
+        statusData.status === "CANCELED"
+      ) {
+        throw new Error(
+          "Runway could not complete the video."
+        );
+      }
+
+      status.innerText =
+        "⏳ Video is still generating... (" +
+        (attempt + 1) +
+        "/30)";
+    }
+
+    if (!videoUrl) {
+      throw new Error(
+        "The video is taking longer than expected. Please try again."
+      );
+    }
+
+    /* =========================
+       STEP 4 — SHOW VIDEO
+       ========================= */
+
+    status.innerText =
+      "🎉 Your video is ready!";
+
+    videoContainer.innerHTML = `
+      <h2>🎬 Your AI Video</h2>
+
+      <video
+        controls
+        autoplay
+        playsinline
+        src="${videoUrl}">
+      </video>
+    `;
 
   } catch (error) {
+
+    status.innerText =
+      "❌ Something went wrong.";
+
     result.innerText =
-      "❌ Could not connect to the AI generator.\n\n" +
       error.message;
+
+  } finally {
+
+    button.disabled = false;
+
   }
 }
 </script>
