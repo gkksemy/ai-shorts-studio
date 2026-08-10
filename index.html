@@ -45,6 +45,15 @@ white-space: pre-wrap;
 
 <br><br>
 
+<label for="style"><strong>Choose your video style:</strong></label>
+
+<select id="style">
+  <option value="cartoon">🎨 Cartoon / Animated</option>
+  <option value="realistic">🎬 Realistic</option>
+</select>
+
+<br><br>
+
 <button onclick="generateScript()">Create Video</button>
 
 <div id="result"></div>
@@ -52,6 +61,7 @@ white-space: pre-wrap;
 <script>
 async function generateScript() {
   const idea = document.getElementById("idea").value;
+  const style = document.getElementById("style").value;
   const result = document.getElementById("result");
 
   if (!idea.trim()) {
@@ -59,7 +69,7 @@ async function generateScript() {
     return;
   }
 
-  result.innerText = "🎬 Creating your video script...";
+  result.innerText = "🎬 Creating your " + style + " video script...";
 
   try {
     const response = await fetch("/api/generate", {
@@ -67,7 +77,10 @@ async function generateScript() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ idea: idea })
+      body: JSON.stringify({
+        idea: idea,
+        style: style
+      })
     });
 
     const data = await response.json();
@@ -79,7 +92,7 @@ async function generateScript() {
     }
 
     result.innerText =
-      "🎬 Your AI-generated script:\n\n" +
+      "🎬 Your AI-generated " + style + " script:\n\n" +
       data.script;
 
   } catch (error) {
