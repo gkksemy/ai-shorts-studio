@@ -28,57 +28,52 @@ Visual style:
 ${visualStyle}
 
 Break the story into EXACTLY 6 scenes.
+Each scene represents approximately 5 seconds.
 
-Each scene should represent approximately 5 seconds.
-
-Return ONLY valid JSON.
-
-Use exactly this format:
+Return ONLY valid JSON in this exact structure:
 
 {
   "scenes": [
     {
       "scene": 1,
       "duration": 5,
-      "visual": "description of what should appear on screen",
-      "action": "what happens in the scene"
+      "visual": "what appears on screen",
+      "action": "what happens"
     },
     {
       "scene": 2,
       "duration": 5,
-      "visual": "description",
+      "visual": "what appears on screen",
       "action": "what happens"
     },
     {
       "scene": 3,
       "duration": 5,
-      "visual": "description",
+      "visual": "what appears on screen",
       "action": "what happens"
     },
     {
       "scene": 4,
       "duration": 5,
-      "visual": "description",
+      "visual": "what appears on screen",
       "action": "what happens"
     },
     {
       "scene": 5,
       "duration": 5,
-      "visual": "description",
+      "visual": "what appears on screen",
       "action": "what happens"
     },
     {
       "scene": 6,
       "duration": 5,
-      "visual": "description",
+      "visual": "what appears on screen",
       "action": "what happens"
     }
   ]
 }
 
-Make the story flow continuously from scene 1 through scene 6.
-
-Keep the main characters, appearance, clothing, environment, and visual style consistent between scenes.
+Keep the characters, appearance, clothing, environment, and visual style consistent throughout all six scenes.
 `;
 
     const response = await fetch(
@@ -91,7 +86,12 @@ Keep the main characters, appearance, clothing, environment, and visual style co
         },
         body: JSON.stringify({
           model: "gpt-5",
-          input: prompt
+          input: prompt,
+          text: {
+            format: {
+              type: "json_object"
+            }
+          }
         })
       }
     );
@@ -104,7 +104,21 @@ Keep the main characters, appearance, clothing, environment, and visual style co
       });
     }
 
-    const text = data.output_text;
+    let text = "";
+
+    if (data.output_text) {
+      text = data.output_text;
+    } else if (data.output) {
+      for (const item of data.output) {
+        if (item.type === "message" && item.content) {
+          for (const content of item.content) {
+            if (content.type === "output_text") {
+              text += content.text;
+            }
+          }
+        }
+      }
+    }
 
     if (!text) {
       return res.status(500).json({
@@ -118,7 +132,7 @@ Keep the main characters, appearance, clothing, environment, and visual style co
       scenes = JSON.parse(text);
     } catch (parseError) {
       return res.status(500).json({
-        error: "OpenAI did not return valid JSON.",
+        error: "OpenAI returned invalid JSON.",
         raw: text
       });
     }
