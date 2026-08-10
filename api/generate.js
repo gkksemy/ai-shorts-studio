@@ -1,10 +1,12 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   try {
-    const { idea, style } = req.body;
+    const { idea, style, duration } = req.body;
 
     if (!idea || !idea.trim()) {
       return res.status(400).json({
@@ -13,49 +15,61 @@ export default async function handler(req, res) {
     }
 
     const selectedStyle =
-      style === "realistic" ? "realistic live-action" : "cartoon animated";
+      style === "realistic"
+        ? "realistic live-action"
+        : "cartoon animated";
+
+    const videoDuration = Number(duration) || 30;
 
     const prompt = `
-Create a short-form YouTube Shorts video script.
+Create a complete YouTube Shorts script.
 
-Video idea:
+VIDEO IDEA:
 ${idea}
 
-Visual style:
+VISUAL STYLE:
 ${selectedStyle}
 
-Requirements:
-- Make it engaging from the first few seconds.
-- Create 5 short scenes.
-- Include narration for each scene.
-- Include a visual description for each scene.
-- Keep the story easy to understand.
-- Make it suitable for a general audience.
-- End with a memorable moment.
+VIDEO LENGTH:
+${videoDuration} seconds
 
-Format:
+IMPORTANT:
+- Make the script appropriate for the selected video length.
+- Keep the pacing engaging.
+- Break the story into scenes.
+- Include a visual description for every scene.
+- Include narration/dialogue for every scene.
+- Make the scenes flow naturally from beginning to end.
+- Create enough scenes to fill approximately ${videoDuration} seconds.
+- Make the ending memorable.
+
+FORMAT:
 
 TITLE:
 
+TOTAL LENGTH:
+${videoDuration} seconds
+
 SCENE 1:
+Time:
 Visual:
-Narration:
+Narration/Dialog:
 
 SCENE 2:
+Time:
 Visual:
-Narration:
+Narration/Dialog:
 
 SCENE 3:
+Time:
 Visual:
-Narration:
+Narration/Dialog:
 
-SCENE 4:
-Visual:
-Narration:
+Continue adding scenes until the full video length is covered.
 
-SCENE 5:
+ENDING:
 Visual:
-Narration:
+Narration/Dialog:
 `;
 
     const response = await fetch(
@@ -81,16 +95,20 @@ Narration:
       });
     }
 
-   const script =
-  data.output_text ||
-  data.output?.map(item =>
-    item.content?.map(content => content.text || "").join("")
-  ).join("\n") ||
-  "No script was generated.";
+    const script =
+      data.output_text ||
+      data.output
+        ?.map(item =>
+          item.content
+            ?.map(content => content.text || "")
+            .join("")
+        )
+        .join("\n") ||
+      "No script was generated.";
 
-return res.status(200).json({
-  script: script
-});
+    return res.status(200).json({
+      script: script
+    });
 
   } catch (error) {
     return res.status(500).json({
