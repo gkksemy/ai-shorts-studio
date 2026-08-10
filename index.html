@@ -50,21 +50,45 @@ white-space: pre-wrap;
 <div id="result"></div>
 
 <script>
-function generateScript() {
-const idea = document.getElementById("idea").value;
-const result = document.getElementById("result");
+<script>
+async function generateScript() {
+  const idea = document.getElementById("idea").value;
+  const result = document.getElementById("result");
 
-if (!idea.trim()) {
-result.innerText = "Please enter a video idea first.";
-return;
-}
+  if (!idea.trim()) {
+    result.innerText = "Please enter a video idea first.";
+    return;
+  }
 
-result.innerText =
-"🎬 Creating your video idea...\n\n" +
-"Your idea: " + idea +
-"\n\n" +
-"Your AI video generator is working! 🚀";
+  result.innerText = "🎬 Creating your video script...";
+
+  try {
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idea: idea })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      result.innerText = "❌ Error: " + (data.error || "Something went wrong.");
+      return;
+    }
+
+    result.innerText =
+      "🎬 Your AI-generated script:\n\n" +
+      data.script;
+
+  } catch (error) {
+    result.innerText =
+      "❌ Could not connect to the AI generator.\n\n" +
+      error.message;
+  }
 }
+</script>
 </script>
 
 </body>
