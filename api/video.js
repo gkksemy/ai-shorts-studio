@@ -24,7 +24,7 @@ export default async function handler(req, res) {
           "X-Runway-Version": "2024-11-06"
         },
         body: JSON.stringify({
-          model: "gen4_turbo",
+          model: "gen4.5",
           promptText: prompt,
           ratio: "720:1280",
           duration: 5
@@ -36,7 +36,8 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data.error || data.message || "Runway API error"
+        error: data.error || "Runway API error",
+        issues: data.issues || []
       });
     }
 
