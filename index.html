@@ -13,6 +13,10 @@
       background: #f7f7f7;
     }
 
+    h1 {
+      margin-bottom: 10px;
+    }
+
     textarea {
       width: 100%;
       height: 120px;
@@ -22,12 +26,14 @@
       margin: 20px 0;
       border: 1px solid #ccc;
       border-radius: 8px;
+      resize: vertical;
     }
 
     select {
       padding: 10px;
       font-size: 16px;
       margin: 10px;
+      border-radius: 6px;
     }
 
     button {
@@ -38,6 +44,7 @@
       border-radius: 8px;
       background: #111;
       color: white;
+      margin-top: 15px;
     }
 
     button:disabled {
@@ -47,7 +54,7 @@
 
     #result {
       margin-top: 30px;
-      text-align: left;
+      text-align: center;
       white-space: pre-wrap;
     }
 
@@ -56,11 +63,13 @@
       max-width: 400px;
       margin-top: 25px;
       border-radius: 10px;
+      background: black;
     }
 
     .status {
       margin-top: 20px;
       font-size: 16px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -87,7 +96,7 @@
     <option value="realistic">🎬 Realistic</option>
   </select>
 
-  <br><br>
+  <br>
 
   <button id="createButton" onclick="createVideo()">
     🎬 Create Video
@@ -99,13 +108,21 @@
 
     async function createVideo() {
 
-      const idea = document.getElementById("idea").value.trim();
-      const style = document.getElementById("style").value;
-      const button = document.getElementById("createButton");
-      const result = document.getElementById("result");
+      const idea =
+        document.getElementById("idea").value.trim();
+
+      const style =
+        document.getElementById("style").value;
+
+      const button =
+        document.getElementById("createButton");
+
+      const result =
+        document.getElementById("result");
 
       if (!idea) {
-        result.innerText = "❌ Please enter a video idea first.";
+        result.innerText =
+          "❌ Please enter a video idea first.";
         return;
       }
 
@@ -113,26 +130,37 @@
 
       try {
 
-        // STEP 1
+        // ==========================================
+        // STEP 1 — CREATE 6 SCENES
+        // ==========================================
+
         result.innerText =
-          "🤖 Creating your 6-scene story...";
+          "🤖 Creating your 6-scene story...\n\n" +
+          "Please wait...";
 
-        const sceneResponse = await fetch("/api/scenes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            idea: idea,
-            style: style
-          })
-        });
+        const sceneResponse = await fetch(
+          "/api/scenes",
+          {
+            method: "POST",
 
-        const sceneData = await sceneResponse.json();
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              idea: idea,
+              style: style
+            })
+          }
+        );
+
+        const sceneData =
+          await sceneResponse.json();
 
         if (!sceneResponse.ok) {
           throw new Error(
-            sceneData.error || "Could not create scenes."
+            sceneData.error ||
+            "Could not create scenes."
           );
         }
 
@@ -145,68 +173,89 @@
           );
         }
 
-        // STEP 2
+        // ==========================================
+        // STEP 2 — CREATE RUNWAY VIDEOS
+        // ==========================================
+
         result.innerText =
-          "🎬 Sending 6 scenes to Runway...\n\n" +
-          "This may take several minutes.";
+          "🎬 Sending your 6 scenes to Runway...\n\n" +
+          "Runway is generating your video clips.";
 
-        const createResponse = await fetch(
-          "/api/create-short",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              scenes: sceneData.scenes
-            })
-          }
-        );
+        const createResponse =
+          await fetch(
+            "/api/create-short",
+            {
+              method: "POST",
 
-        const createData = await createResponse.json();
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+                scenes: sceneData.scenes
+              })
+            }
+          );
+
+        const createData =
+          await createResponse.json();
 
         if (!createResponse.ok) {
           throw new Error(
             createData.error ||
-            "Could not start video generation."
+            "Could not start Runway."
           );
         }
 
-        const taskIds = createData.tasks
-          ? createData.tasks.map(item => item.taskId)
-          : createData.taskIds;
+        const taskIds =
+          createData.taskIds ||
+          (
+            createData.tasks
+              ? createData.tasks.map(
+                  item => item.taskId
+                )
+              : []
+          );
 
-        if (!taskIds || taskIds.length !== 6) {
+        if (
+          !Array.isArray(taskIds) ||
+          taskIds.length !== 6
+        ) {
           throw new Error(
-            "Runway did not return 6 task IDs."
+            "Runway did not return exactly 6 task IDs."
           );
         }
 
-        // STEP 3
+        // ==========================================
+        // STEP 3 — WAIT FOR RUNWAY
+        // ==========================================
+
         let videos = null;
 
         while (!videos) {
 
           result.innerText =
             "🎥 Runway is generating your 6 clips...\n\n" +
-            "Please wait. Do not close this page.";
+            "This can take several minutes.\n\n" +
+            "Please keep this page open.";
 
-          await new Promise(resolve =>
-            setTimeout(resolve, 10000)
-          );
+          await sleep(10000);
 
-          const statusResponse = await fetch(
-            "/api/short-status",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                taskIds: taskIds
-              })
-            }
-          );
+          const statusResponse =
+            await fetch(
+              "/api/short-status",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                  taskIds: taskIds
+                })
+              }
+            );
 
           const statusData =
             await statusResponse.json();
@@ -214,24 +263,30 @@
           if (!statusResponse.ok) {
             throw new Error(
               statusData.error ||
-              "Could not check video status."
+              "Could not check Runway status."
             );
           }
 
-          if (statusData.status === "FAILED") {
+          if (
+            statusData.status === "FAILED"
+          ) {
             throw new Error(
               "One or more Runway clips failed."
             );
           }
 
-          if (statusData.status === "SUCCEEDED") {
+          if (
+            statusData.status === "SUCCEEDED"
+          ) {
 
             videos = statusData.videos;
 
             if (
-              !videos ||
+              !Array.isArray(videos) ||
               videos.length !== 6 ||
-              videos.some(video => !video)
+              videos.some(
+                video => !video
+              )
             ) {
               throw new Error(
                 "Runway finished, but some video URLs are missing."
@@ -240,22 +295,29 @@
           }
         }
 
-        // STEP 4
-        result.innerText =
-          "✂️ Combining the 6 clips into one 30-second video...";
+        // ==========================================
+        // STEP 4 — STITCH THE 6 VIDEOS
+        // ==========================================
 
-        const stitchResponse = await fetch(
-          "/api/stitch",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              videos: videos
-            })
-          }
-        );
+        result.innerText =
+          "✂️ Combining your 6 clips...\n\n" +
+          "Creating your 30-second video.";
+
+        const stitchResponse =
+          await fetch(
+            "/api/stitch",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+                videos: videos
+              })
+            }
+          );
 
         const stitchData =
           await stitchResponse.json();
@@ -267,7 +329,8 @@
           );
         }
 
-        const renderId = stitchData.renderId;
+        const renderId =
+          stitchData.renderId;
 
         if (!renderId) {
           throw new Error(
@@ -275,22 +338,25 @@
           );
         }
 
-        // STEP 5
+        // ==========================================
+        // STEP 5 — WAIT FOR SHOTSTACK
+        // ==========================================
+
         let finalVideo = null;
 
         while (!finalVideo) {
 
           result.innerText =
-            "🎞️ Finalizing your 30-second video...";
+            "🎞️ Finalizing your 30-second video...\n\n" +
+            "Almost there!";
 
-          await new Promise(resolve =>
-            setTimeout(resolve, 5000)
-          );
+          await sleep(5000);
 
-          const renderResponse = await fetch(
-            "/api/stitch-status?renderId=" +
-            encodeURIComponent(renderId)
-          );
+          const renderResponse =
+            await fetch(
+              "/api/stitch-status?renderId=" +
+              encodeURIComponent(renderId)
+            );
 
           const renderData =
             await renderResponse.json();
@@ -302,9 +368,14 @@
             );
           }
 
+          const status =
+            String(
+              renderData.status || ""
+            ).toLowerCase();
+
           if (
-            renderData.status === "failed" ||
-            renderData.status === "ERROR"
+            status === "failed" ||
+            status === "error"
           ) {
             throw new Error(
               "Shotstack failed to create the final video."
@@ -312,22 +383,31 @@
           }
 
           if (
-            renderData.status === "done" &&
+            status === "done" &&
             renderData.url
           ) {
-            finalVideo = renderData.url;
+            finalVideo =
+              renderData.url;
           }
         }
 
-        // STEP 6
+        // ==========================================
+        // STEP 6 — SHOW FINAL VIDEO
+        // ==========================================
+
         result.innerHTML = `
           <h2>🎉 Your video is ready!</h2>
 
-          <video controls autoplay>
+          <video
+            controls
+            autoplay
+            playsinline
+          >
             <source
               src="${finalVideo}"
               type="video/mp4"
             >
+            Your browser does not support video playback.
           </video>
 
           <p>
@@ -337,6 +417,8 @@
 
       } catch (error) {
 
+        console.error(error);
+
         result.innerText =
           "❌ " + error.message;
 
@@ -344,6 +426,17 @@
 
         button.disabled = false;
       }
+    }
+
+
+    function sleep(milliseconds) {
+      return new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            milliseconds
+          )
+      );
     }
 
   </script>
