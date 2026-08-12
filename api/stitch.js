@@ -14,24 +14,24 @@ export default async function handler(req, res) {
       });
     }
 
-    const clips = videos.map((videoUrl) => ({
+    const clips = videos.map((videoUrl, index) => ({
       asset: {
         type: "video",
         src: videoUrl
       },
-      start: 0,
+      start: index * 5,
       length: 5
     }));
 
     const edit = {
       timeline: {
-        background: "#000000",
         tracks: [
           {
             clips: clips
           }
         ]
       },
+
       output: {
         format: "mp4",
         resolution: "hd",
@@ -43,10 +43,12 @@ export default async function handler(req, res) {
       "https://api.shotstack.io/edit/v1/render",
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
           "x-api-key": process.env.SHOTSTACK_API_KEY
         },
+
         body: JSON.stringify(edit)
       }
     );
@@ -62,9 +64,19 @@ export default async function handler(req, res) {
       });
     }
 
+    const renderId =
+      data.response?.id ||
+      data.id;
+
+    if (!renderId) {
+      return res.status(500).json({
+        error: "Shotstack did not return a render ID."
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      renderId: data.response?.id || data.id
+      renderId: renderId
     });
 
   } catch (error) {
