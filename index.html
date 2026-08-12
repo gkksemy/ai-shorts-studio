@@ -10,6 +10,7 @@
       margin: 60px auto;
       padding: 20px;
       text-align: center;
+      background: #f7f7f7;
     }
 
     textarea {
@@ -19,24 +20,29 @@
       font-size: 16px;
       box-sizing: border-box;
       margin: 20px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
 
     select {
       padding: 10px;
       font-size: 16px;
-      margin-top: 8px;
+      margin: 10px;
     }
 
     button {
       padding: 14px 30px;
       font-size: 16px;
       cursor: pointer;
-      margin-top: 20px;
+      border: none;
+      border-radius: 8px;
+      background: #111;
+      color: white;
     }
 
     button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
-      opacity: 0.6;
     }
 
     #result {
@@ -45,21 +51,16 @@
       white-space: pre-wrap;
     }
 
-    #videoContainer {
-      margin-top: 30px;
-      text-align: center;
-    }
-
     video {
       width: 100%;
       max-width: 400px;
-      border-radius: 12px;
+      margin-top: 25px;
+      border-radius: 10px;
     }
 
     .status {
-      font-size: 18px;
-      margin: 20px 0;
-      text-align: center;
+      margin-top: 20px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -68,20 +69,18 @@
 
   <h1>🎬 AI Shorts Studio</h1>
 
-  <p>Turn your idea into an AI-generated video.</p>
+  <p>Turn your idea into a 30-second AI video.</p>
 
   <textarea
     id="idea"
     placeholder="Describe your video idea..."
   ></textarea>
 
-  <br><br>
+  <br>
 
   <label for="style">
     <strong>Choose your video style:</strong>
   </label>
-
-  <br>
 
   <select id="style">
     <option value="cartoon">🎨 Cartoon / Animated</option>
@@ -90,217 +89,264 @@
 
   <br><br>
 
-  <label for="duration">
-    <strong>Choose video length:</strong>
-  </label>
-
-  <br>
-
-  <select id="duration">
-    <option value="30">30 seconds</option>
-    <option value="60">1 minute</option>
-    <option value="90">1 minute 30 seconds</option>
-    <option value="120">2 minutes</option>
-    <option value="180">3 minutes</option>
-    <option value="240">4 minutes</option>
-    <option value="300">5 minutes</option>
-  </select>
-
-  <br>
-
   <button id="createButton" onclick="createVideo()">
     🎬 Create Video
   </button>
 
-  <div id="status" class="status"></div>
-
   <div id="result"></div>
 
-  <div id="videoContainer"></div>
+  <script>
 
-<script>
-async function createVideo() {
+    async function createVideo() {
 
-  const idea = document.getElementById("idea").value.trim();
-  const style = document.getElementById("style").value;
-  const duration = document.getElementById("duration").value;
+      const idea = document.getElementById("idea").value.trim();
+      const style = document.getElementById("style").value;
+      const button = document.getElementById("createButton");
+      const result = document.getElementById("result");
 
-  const button = document.getElementById("createButton");
-  const status = document.getElementById("status");
-  const result = document.getElementById("result");
-  const videoContainer = document.getElementById("videoContainer");
-
-  if (!idea) {
-    status.innerText = "⚠️ Please enter a video idea first.";
-    return;
-  }
-
-  button.disabled = true;
-
-  status.innerText = "🤖 Creating your AI script...";
-  result.innerText = "";
-  videoContainer.innerHTML = "";
-
-  try {
-
-    /* =========================
-       STEP 1 — CREATE SCRIPT
-       ========================= */
-
-    const scriptResponse = await fetch("/api/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        idea: idea,
-        style: style,
-        duration: duration
-      })
-    });
-
-    const scriptData = await scriptResponse.json();
-
-    if (!scriptResponse.ok) {
-      throw new Error(
-        scriptData.error || "Could not create the script."
-      );
-    }
-
-    const script = scriptData.script;
-
-    result.innerText =
-      "🎬 AI SCRIPT:\n\n" +
-      script;
-
-    /* =========================
-       STEP 2 — CREATE VIDEO
-       ========================= */
-
-    status.innerText =
-      "🎥 Sending your idea to Runway...";
-
-    const videoPrompt =
-      style === "cartoon"
-        ? "Create a colorful cartoon animated scene based on this idea: " + idea
-        : "Create a realistic cinematic video scene based on this idea: " + idea;
-
-    const videoResponse = await fetch("/api/video", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: videoPrompt
-      })
-    });
-
-    const videoData = await videoResponse.json();
-
-    if (!videoResponse.ok) {
-      throw new Error(
-        videoData.error || "Could not start video generation."
-      );
-    }
-
-    const taskId = videoData.taskId;
-
-    /* =========================
-       STEP 3 — WAIT FOR VIDEO
-       ========================= */
-
-    status.innerText =
-      "⏳ Runway is creating your video...";
-
-    let videoUrl = null;
-
-    for (let attempt = 0; attempt < 30; attempt++) {
-
-      await new Promise(resolve =>
-        setTimeout(resolve, 5000)
-      );
-
-      const statusResponse = await fetch(
-        "/api/video-status?taskId=" +
-        encodeURIComponent(taskId)
-      );
-
-      const statusData = await statusResponse.json();
-
-      if (!statusResponse.ok) {
-        throw new Error(
-          statusData.error ||
-          "Could not check video status."
-        );
+      if (!idea) {
+        result.innerText = "❌ Please enter a video idea first.";
+        return;
       }
 
-      if (statusData.status === "SUCCEEDED") {
+      button.disabled = true;
 
-        if (
-          statusData.output &&
-          Array.isArray(statusData.output) &&
-          statusData.output.length > 0
-        ) {
-          videoUrl = statusData.output[0];
+      try {
+
+        // STEP 1
+        result.innerText =
+          "🤖 Creating your 6-scene story...";
+
+        const sceneResponse = await fetch("/api/scenes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            idea: idea,
+            style: style
+          })
+        });
+
+        const sceneData = await sceneResponse.json();
+
+        if (!sceneResponse.ok) {
+          throw new Error(
+            sceneData.error || "Could not create scenes."
+          );
         }
 
-        break;
-      }
+        if (
+          !sceneData.scenes ||
+          sceneData.scenes.length !== 6
+        ) {
+          throw new Error(
+            "The AI did not create exactly 6 scenes."
+          );
+        }
 
-      if (
-        statusData.status === "FAILED" ||
-        statusData.status === "CANCELED"
-      ) {
-        throw new Error(
-          "Runway could not complete the video."
+        // STEP 2
+        result.innerText =
+          "🎬 Sending 6 scenes to Runway...\n\n" +
+          "This may take several minutes.";
+
+        const createResponse = await fetch(
+          "/api/create-short",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              scenes: sceneData.scenes
+            })
+          }
         );
+
+        const createData = await createResponse.json();
+
+        if (!createResponse.ok) {
+          throw new Error(
+            createData.error ||
+            "Could not start video generation."
+          );
+        }
+
+        const taskIds = createData.tasks
+          ? createData.tasks.map(item => item.taskId)
+          : createData.taskIds;
+
+        if (!taskIds || taskIds.length !== 6) {
+          throw new Error(
+            "Runway did not return 6 task IDs."
+          );
+        }
+
+        // STEP 3
+        let videos = null;
+
+        while (!videos) {
+
+          result.innerText =
+            "🎥 Runway is generating your 6 clips...\n\n" +
+            "Please wait. Do not close this page.";
+
+          await new Promise(resolve =>
+            setTimeout(resolve, 10000)
+          );
+
+          const statusResponse = await fetch(
+            "/api/short-status",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                taskIds: taskIds
+              })
+            }
+          );
+
+          const statusData =
+            await statusResponse.json();
+
+          if (!statusResponse.ok) {
+            throw new Error(
+              statusData.error ||
+              "Could not check video status."
+            );
+          }
+
+          if (statusData.status === "FAILED") {
+            throw new Error(
+              "One or more Runway clips failed."
+            );
+          }
+
+          if (statusData.status === "SUCCEEDED") {
+
+            videos = statusData.videos;
+
+            if (
+              !videos ||
+              videos.length !== 6 ||
+              videos.some(video => !video)
+            ) {
+              throw new Error(
+                "Runway finished, but some video URLs are missing."
+              );
+            }
+          }
+        }
+
+        // STEP 4
+        result.innerText =
+          "✂️ Combining the 6 clips into one 30-second video...";
+
+        const stitchResponse = await fetch(
+          "/api/stitch",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              videos: videos
+            })
+          }
+        );
+
+        const stitchData =
+          await stitchResponse.json();
+
+        if (!stitchResponse.ok) {
+          throw new Error(
+            stitchData.error ||
+            "Could not start video assembly."
+          );
+        }
+
+        const renderId = stitchData.renderId;
+
+        if (!renderId) {
+          throw new Error(
+            "Shotstack did not return a render ID."
+          );
+        }
+
+        // STEP 5
+        let finalVideo = null;
+
+        while (!finalVideo) {
+
+          result.innerText =
+            "🎞️ Finalizing your 30-second video...";
+
+          await new Promise(resolve =>
+            setTimeout(resolve, 5000)
+          );
+
+          const renderResponse = await fetch(
+            "/api/stitch-status?renderId=" +
+            encodeURIComponent(renderId)
+          );
+
+          const renderData =
+            await renderResponse.json();
+
+          if (!renderResponse.ok) {
+            throw new Error(
+              renderData.error ||
+              "Could not check final video."
+            );
+          }
+
+          if (
+            renderData.status === "failed" ||
+            renderData.status === "ERROR"
+          ) {
+            throw new Error(
+              "Shotstack failed to create the final video."
+            );
+          }
+
+          if (
+            renderData.status === "done" &&
+            renderData.url
+          ) {
+            finalVideo = renderData.url;
+          }
+        }
+
+        // STEP 6
+        result.innerHTML = `
+          <h2>🎉 Your video is ready!</h2>
+
+          <video controls autoplay>
+            <source
+              src="${finalVideo}"
+              type="video/mp4"
+            >
+          </video>
+
+          <p>
+            🎬 30-second AI Short completed!
+          </p>
+        `;
+
+      } catch (error) {
+
+        result.innerText =
+          "❌ " + error.message;
+
+      } finally {
+
+        button.disabled = false;
       }
-
-      status.innerText =
-        "⏳ Video is still generating... (" +
-        (attempt + 1) +
-        "/30)";
     }
 
-    if (!videoUrl) {
-      throw new Error(
-        "The video is taking longer than expected. Please try again."
-      );
-    }
-
-    /* =========================
-       STEP 4 — SHOW VIDEO
-       ========================= */
-
-    status.innerText =
-      "🎉 Your video is ready!";
-
-    videoContainer.innerHTML = `
-      <h2>🎬 Your AI Video</h2>
-
-      <video
-        controls
-        autoplay
-        playsinline
-        src="${videoUrl}">
-      </video>
-    `;
-
-  } catch (error) {
-
-    status.innerText =
-      "❌ Something went wrong.";
-
-    result.innerText =
-      error.message;
-
-  } finally {
-
-    button.disabled = false;
-
-  }
-}
-</script>
+  </script>
 
 </body>
 </html>
