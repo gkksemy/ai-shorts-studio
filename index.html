@@ -13,10 +13,6 @@
       background: #f7f7f7;
     }
 
-    h1 {
-      margin-bottom: 10px;
-    }
-
     textarea {
       width: 100%;
       height: 120px;
@@ -26,14 +22,12 @@
       margin: 20px 0;
       border: 1px solid #ccc;
       border-radius: 8px;
-      resize: vertical;
     }
 
     select {
       padding: 10px;
       font-size: 16px;
       margin: 10px;
-      border-radius: 6px;
     }
 
     button {
@@ -44,7 +38,6 @@
       border-radius: 8px;
       background: #111;
       color: white;
-      margin-top: 15px;
     }
 
     button:disabled {
@@ -55,7 +48,6 @@
     #result {
       margin-top: 30px;
       text-align: center;
-      white-space: pre-wrap;
     }
 
     video {
@@ -65,12 +57,6 @@
       border-radius: 10px;
       background: black;
     }
-
-    .status {
-      margin-top: 20px;
-      font-size: 16px;
-      line-height: 1.5;
-    }
   </style>
 </head>
 
@@ -78,7 +64,7 @@
 
   <h1>🎬 AI Shorts Studio</h1>
 
-  <p>Turn your idea into a 30-second AI video.</p>
+  <p>Test your 30-second AI Short.</p>
 
   <textarea
     id="idea"
@@ -96,23 +82,26 @@
     <option value="realistic">🎬 Realistic</option>
   </select>
 
-  <br>
+  <br><br>
 
-  <button id="createButton" onclick="createVideo()">
-    🎬 Create Video
+  <button id="createButton" onclick="createTestVideo()">
+    🎬 Create Test Video
   </button>
 
   <div id="result"></div>
 
   <script>
 
-    async function createVideo() {
+    const existingTaskIds = [
+      "3fdb6cbd-1498-4c0c-9632-0ff25808e4ba",
+      "46b21bd5-4c91-4cc2-8858-931b5c78f273",
+      "2ad6b96e-f90f-4131-a6e8-9d8da88d8ded",
+      "085784de-972f-4e68-9165-dc99e873fb4d",
+      "46d7d4af-7223-4156-a9a2-63dce2f9be86",
+      "03d72134-f2ec-4d23-854c-6e0f3f7dba8c"
+    ];
 
-      const idea =
-        document.getElementById("idea").value.trim();
-
-      const style =
-        document.getElementById("style").value;
+    async function createTestVideo() {
 
       const button =
         document.getElementById("createButton");
@@ -120,70 +109,19 @@
       const result =
         document.getElementById("result");
 
-      if (!idea) {
-        result.innerText =
-          "❌ Please enter a video idea first.";
-        return;
-      }
-
       button.disabled = true;
 
       try {
 
-        // ==========================================
-        // STEP 1 — CREATE 6 SCENES
-        // ==========================================
+        // STEP 1 — GET EXISTING RUNWAY VIDEOS
 
-        result.innerText =
-          "🤖 Creating your 6-scene story...\n\n" +
-          "Please wait...";
+        result.innerHTML =
+          "🎬 Loading your existing 6 video clips...<br><br>" +
+          "No new Runway credits will be used.";
 
-        const sceneResponse = await fetch(
-          "/api/scenes",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-              idea: idea,
-              style: style
-            })
-          }
-        );
-
-        const sceneData =
-          await sceneResponse.json();
-
-        if (!sceneResponse.ok) {
-          throw new Error(
-            sceneData.error ||
-            "Could not create scenes."
-          );
-        }
-
-        if (
-          !sceneData.scenes ||
-          sceneData.scenes.length !== 6
-        ) {
-          throw new Error(
-            "The AI did not create exactly 6 scenes."
-          );
-        }
-
-        // ==========================================
-        // STEP 2 — CREATE RUNWAY VIDEOS
-        // ==========================================
-
-        result.innerText =
-          "🎬 Sending your 6 scenes to Runway...\n\n" +
-          "Runway is generating your video clips.";
-
-        const createResponse =
+        const statusResponse =
           await fetch(
-            "/api/create-short",
+            "/api/short-status",
             {
               method: "POST",
 
@@ -192,115 +130,46 @@
               },
 
               body: JSON.stringify({
-                scenes: sceneData.scenes
+                taskIds: existingTaskIds
               })
             }
           );
 
-        const createData =
-          await createResponse.json();
+        const statusData =
+          await statusResponse.json();
 
-        if (!createResponse.ok) {
+        if (!statusResponse.ok) {
           throw new Error(
-            createData.error ||
-            "Could not start Runway."
+            statusData.error ||
+            "Could not load the existing clips."
           );
         }
-
-        const taskIds =
-          createData.taskIds ||
-          (
-            createData.tasks
-              ? createData.tasks.map(
-                  item => item.taskId
-                )
-              : []
-          );
 
         if (
-          !Array.isArray(taskIds) ||
-          taskIds.length !== 6
+          statusData.status !== "SUCCEEDED"
         ) {
           throw new Error(
-            "Runway did not return exactly 6 task IDs."
+            "The existing Runway clips are not all finished."
           );
         }
 
-        // ==========================================
-        // STEP 3 — WAIT FOR RUNWAY
-        // ==========================================
+        const videos =
+          statusData.videos;
 
-        let videos = null;
-
-        while (!videos) {
-
-          result.innerText =
-            "🎥 Runway is generating your 6 clips...\n\n" +
-            "This can take several minutes.\n\n" +
-            "Please keep this page open.";
-
-          await sleep(10000);
-
-          const statusResponse =
-            await fetch(
-              "/api/short-status",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                  taskIds: taskIds
-                })
-              }
-            );
-
-          const statusData =
-            await statusResponse.json();
-
-          if (!statusResponse.ok) {
-            throw new Error(
-              statusData.error ||
-              "Could not check Runway status."
-            );
-          }
-
-          if (
-            statusData.status === "FAILED"
-          ) {
-            throw new Error(
-              "One or more Runway clips failed."
-            );
-          }
-
-          if (
-            statusData.status === "SUCCEEDED"
-          ) {
-
-            videos = statusData.videos;
-
-            if (
-              !Array.isArray(videos) ||
-              videos.length !== 6 ||
-              videos.some(
-                video => !video
-              )
-            ) {
-              throw new Error(
-                "Runway finished, but some video URLs are missing."
-              );
-            }
-          }
+        if (
+          !Array.isArray(videos) ||
+          videos.length !== 6 ||
+          videos.some(video => !video)
+        ) {
+          throw new Error(
+            "Six completed video URLs were not found."
+          );
         }
 
-        // ==========================================
-        // STEP 4 — STITCH THE 6 VIDEOS
-        // ==========================================
+        // STEP 2 — SEND EXISTING CLIPS TO SHOTSTACK
 
-        result.innerText =
-          "✂️ Combining your 6 clips...\n\n" +
+        result.innerHTML =
+          "✂️ Combining your 6 existing clips...<br><br>" +
           "Creating your 30-second video.";
 
         const stitchResponse =
@@ -325,7 +194,7 @@
         if (!stitchResponse.ok) {
           throw new Error(
             stitchData.error ||
-            "Could not start video assembly."
+            "Could not start Shotstack."
           );
         }
 
@@ -338,17 +207,15 @@
           );
         }
 
-        // ==========================================
-        // STEP 5 — WAIT FOR SHOTSTACK
-        // ==========================================
+        // STEP 3 — WAIT FOR SHOTSTACK
 
         let finalVideo = null;
 
         while (!finalVideo) {
 
-          result.innerText =
-            "🎞️ Finalizing your 30-second video...\n\n" +
-            "Almost there!";
+          result.innerHTML =
+            "🎞️ Shotstack is creating your final video...<br><br>" +
+            "Almost there.";
 
           await sleep(5000);
 
@@ -364,7 +231,7 @@
           if (!renderResponse.ok) {
             throw new Error(
               renderData.error ||
-              "Could not check final video."
+              "Could not check Shotstack."
             );
           }
 
@@ -378,7 +245,7 @@
             status === "error"
           ) {
             throw new Error(
-              "Shotstack failed to create the final video."
+              "Shotstack failed to create the video."
             );
           }
 
@@ -391,12 +258,10 @@
           }
         }
 
-        // ==========================================
-        // STEP 6 — SHOW FINAL VIDEO
-        // ==========================================
+        // STEP 4 — DISPLAY VIDEO
 
         result.innerHTML = `
-          <h2>🎉 Your video is ready!</h2>
+          <h2>🎉 Your 30-second video is ready!</h2>
 
           <video
             controls
@@ -411,7 +276,7 @@
           </video>
 
           <p>
-            🎬 30-second AI Short completed!
+            ✅ Test completed successfully.
           </p>
         `;
 
@@ -419,7 +284,7 @@
 
         console.error(error);
 
-        result.innerText =
+        result.innerHTML =
           "❌ " + error.message;
 
       } finally {
@@ -427,7 +292,6 @@
         button.disabled = false;
       }
     }
-
 
     function sleep(milliseconds) {
       return new Promise(
