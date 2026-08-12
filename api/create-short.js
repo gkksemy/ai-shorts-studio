@@ -14,14 +14,16 @@ export default async function handler(req, res) {
       });
     }
 
-    const taskIds = [];
+    const results = [];
 
-    for (const scene of scenes) {
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
 
       const prompt =
         `${scene.visual}. ${scene.action}. ` +
-        `Maintain consistent characters, environment and visual style. ` +
-        `Vertical short-form video, cinematic camera movement.`;
+        `Maintain consistent characters, environment, clothing, ` +
+        `appearance and visual style. ` +
+        `Vertical 9:16 short-form video, cinematic camera movement.`;
 
       const response = await fetch(
         "https://api.dev.runwayml.com/v1/text_to_video",
@@ -49,15 +51,20 @@ export default async function handler(req, res) {
           error:
             data.error ||
             data.message ||
-            "Runway API error"
+            "Runway API error",
+          scene: i + 1
         });
       }
 
-      taskIds.push(data.id);
+      results.push({
+        scene: i + 1,
+        taskId: data.id
+      });
     }
 
     return res.status(200).json({
-      taskIds: taskIds
+      success: true,
+      tasks: results
     });
 
   } catch (error) {
